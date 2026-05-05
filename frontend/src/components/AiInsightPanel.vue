@@ -6,7 +6,7 @@
         <span class="ai-title">{{ title }}</span>
       </div>
       <el-tag :type="mocked ? 'warning' : 'success'" effect="plain" size="small">
-        {{ mocked ? 'Mock 模式' : '模型输出' }}
+        {{ mocked ? 'Mock 输出' : '真实模型输出' }}
       </el-tag>
     </div>
 

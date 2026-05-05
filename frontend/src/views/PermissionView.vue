@@ -75,6 +75,7 @@
         <ReportPanel v-if="result.riskItems?.length" title="风险项" :items="result.riskItems" type="warn" :count="result.riskItems.length" style="margin-bottom: 12px;" />
         <ReportPanel v-if="result.suggestions?.length" title="建议" :items="result.suggestions" type="info" :count="result.suggestions.length" style="margin-bottom: 12px;" />
 
+        <AiRuntimeStatus compact />
         <div class="ai-action-row">
           <el-button type="primary" plain :loading="aiLoading" @click="handleAiExplain">
             AI 解释风险
@@ -117,6 +118,7 @@ import RiskBadge from '../components/RiskBadge.vue'
 import EmptyState from '../components/EmptyState.vue'
 import ReportPanel from '../components/ReportPanel.vue'
 import AiInsightPanel from '../components/AiInsightPanel.vue'
+import AiRuntimeStatus from '../components/AiRuntimeStatus.vue'
 import { assessPermission } from '../api/risk'
 import { explainRiskWithAi } from '../api/ai'
 import type { PermissionAssessResultVO } from '../types/risk'

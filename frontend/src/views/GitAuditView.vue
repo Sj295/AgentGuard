@@ -62,6 +62,7 @@
 
           <ReportPanel v-if="result.suggestions?.length" title="建议" :items="result.suggestions" type="info" />
 
+          <AiRuntimeStatus compact />
           <div class="ai-action-row">
             <el-button type="primary" plain :loading="aiLoading" @click="handleAiAnalyze">
               生成 AI 影响分析
@@ -106,6 +107,7 @@ import CodeBlock from '../components/CodeBlock.vue'
 import EmptyState from '../components/EmptyState.vue'
 import ReportPanel from '../components/ReportPanel.vue'
 import AiInsightPanel from '../components/AiInsightPanel.vue'
+import AiRuntimeStatus from '../components/AiRuntimeStatus.vue'
 import { auditGitDiff } from '../api/gitAudit'
 import { analyzeGitDiffWithAi } from '../api/ai'
 import type { GitDiffAuditVO } from '../types/gitAudit'

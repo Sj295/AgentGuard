@@ -6,8 +6,13 @@ import type {
   AiReportSummaryRequest,
   AiReportSummaryVO,
   AiRiskExplainRequest,
-  AiRiskExplainVO
+  AiRiskExplainVO,
+  AiRuntimeStatusVO
 } from '../types/ai'
+
+export function getAiStatus() {
+  return http.get<Result<AiRuntimeStatusVO>>('/ai/status')
+}
 
 export function analyzeGitDiffWithAi(data: AiGitDiffAnalysisRequest) {
   return http.post<Result<AiGitDiffAnalysisVO>>('/ai/git-diff/analyze', data)

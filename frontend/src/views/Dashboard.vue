@@ -125,7 +125,10 @@
       <EmptyState v-else title="暂无安全事件" desc="扫描项目后将自动生成安全事件" />
     </div>
 
-    <AiAnalysisHistoryPanel :project-id="projectId" />
+    <div class="ai-dashboard-block">
+      <AiRuntimeStatus />
+      <AiAnalysisHistoryPanel :project-id="projectId" />
+    </div>
   </div>
 </template>
 
@@ -141,6 +144,7 @@ import EmptyState from '../components/EmptyState.vue'
 import MetricCard from '../components/MetricCard.vue'
 import FlowSteps from '../components/FlowSteps.vue'
 import AiAnalysisHistoryPanel from '../components/AiAnalysisHistoryPanel.vue'
+import AiRuntimeStatus from '../components/AiRuntimeStatus.vue'
 import { getSecurityOverview, getTimelineEvents } from '../api/timeline'
 import { getLatestAgentRules } from '../api/agentRule'
 import { getAllProjects } from '../api/project'
@@ -490,6 +494,12 @@ onMounted(async () => {
 .event-time {
   font-size: 11px;
   color: #94A3B8;
+}
+
+.ai-dashboard-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 @media (max-width: 1200px) {

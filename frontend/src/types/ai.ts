@@ -13,6 +13,21 @@ export interface AiReportSummaryRequest {
   markdown: string
 }
 
+export type AiExecutionMode = 'MOCK_DISABLED' | 'MOCK_EMPTY_KEY' | 'REAL_MODEL' | 'MISCONFIGURED_EMPTY_KEY'
+
+export interface AiRuntimeStatusVO {
+  enabled: boolean
+  hasApiKey: boolean
+  mockOnEmptyKey: boolean
+  willCallRemoteModel: boolean
+  executionMode: AiExecutionMode
+  provider: string
+  model: string
+  baseUrl: string
+  statusText: string
+  confidenceNote: string
+}
+
 export interface AiGitDiffAnalysisVO {
   projectId: number
   gitAuditReportId: number

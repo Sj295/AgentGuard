@@ -11,6 +11,7 @@ import com.agentguard.ai.vo.AiAnalysisRecordVO;
 import com.agentguard.ai.vo.AiGitDiffAnalysisVO;
 import com.agentguard.ai.vo.AiReportSummaryVO;
 import com.agentguard.ai.vo.AiRiskExplainVO;
+import com.agentguard.ai.vo.AiRuntimeStatusVO;
 import com.agentguard.common.PageResult;
 import com.agentguard.common.Result;
 import com.agentguard.service.AiAnalysisRecordService;
@@ -59,6 +60,11 @@ public class AiAnalysisController {
         return Result.success(resolveService().summarizeReport(request));
     }
 
+    @GetMapping("/status")
+    public Result<AiRuntimeStatusVO> getRuntimeStatus() {
+        return Result.success(buildRuntimeStatus());
+    }
+
     @GetMapping("/records/project/{projectId}")
     public Result<PageResult<AiAnalysisRecordVO>> pageProjectRecords(@PathVariable Long projectId,
                                                                       @RequestParam(defaultValue = "1") long current,
@@ -89,5 +95,46 @@ public class AiAnalysisController {
             return llmAiAnalysisService;
         }
         return llmAiAnalysisService;
+    }
+
+    private AiRuntimeStatusVO buildRuntimeStatus() {
+        AiRuntimeStatusVO status = new AiRuntimeStatusVO();
+        boolean enabled = aiProperties.isEnabled();
+        boolean hasApiKey = aiProperties.hasApiKey();
+        boolean mockOnEmptyKey = aiProperties.isMockOnEmptyKey();
+
+        status.setEnabled(enabled);
+        status.setHasApiKey(hasApiKey);
+        status.setMockOnEmptyKey(mockOnEmptyKey);
+        status.setProvider(aiProperties.getProvider());
+        status.setModel(aiProperties.getModel());
+        status.setBaseUrl(aiProperties.getBaseUrl());
+        status.setConfidenceNote(AiAnalysisService.CONFIDENCE_NOTE);
+
+        if (!enabled) {
+            status.setExecutionMode("MOCK_DISABLED");
+            status.setWillCallRemoteModel(false);
+            status.setStatusText("AI 增强分析已关闭，当前使用 Mock，不会调用远程模型。");
+            return status;
+        }
+
+        if (!hasApiKey && mockOnEmptyKey) {
+            status.setExecutionMode("MOCK_EMPTY_KEY");
+            status.setWillCallRemoteModel(false);
+            status.setStatusText("AI 已启用但未配置 API Key，当前使用 Mock，不会调用远程模型。");
+            return status;
+        }
+
+        if (!hasApiKey) {
+            status.setExecutionMode("MISCONFIGURED_EMPTY_KEY");
+            status.setWillCallRemoteModel(false);
+            status.setStatusText("AI 已启用但未配置 API Key，真实模型不可用；请配置 AGENTGUARD_AI_API_KEY 或开启 mock-on-empty-key。");
+            return status;
+        }
+
+        status.setExecutionMode("REAL_MODEL");
+        status.setWillCallRemoteModel(true);
+        status.setStatusText("已配置 API Key，AI 分析会调用远程模型；调用失败时会降级为 Mock。");
+        return status;
     }
 }

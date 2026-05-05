@@ -50,6 +50,7 @@
         </div>
       </div>
       <template v-if="reportContent">
+        <AiRuntimeStatus compact class="ai-report-status" />
         <div class="md-preview" v-html="renderedHtml"></div>
         <AiInsightPanel
           v-if="aiResult"
@@ -74,6 +75,7 @@ import { ElMessage } from 'element-plus'
 import { Document, Download, CircleCheck } from '@element-plus/icons-vue'
 import EmptyState from '../components/EmptyState.vue'
 import AiInsightPanel from '../components/AiInsightPanel.vue'
+import AiRuntimeStatus from '../components/AiRuntimeStatus.vue'
 import { generateMarkdownReport, exportMarkdownReport } from '../api/report'
 import { summarizeReportWithAi } from '../api/ai'
 import type { MarkdownReportVO } from '../types/report'
@@ -262,6 +264,10 @@ watch(globalProjectId, (val) => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.ai-report-status {
+  margin-bottom: 12px;
 }
 
 /* Markdown preview */

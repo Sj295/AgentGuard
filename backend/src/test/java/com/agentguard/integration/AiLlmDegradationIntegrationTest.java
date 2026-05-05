@@ -165,6 +165,12 @@ class AiLlmDegradationIntegrationTest {
 
     @Test
     void analyzeGitDiff_shouldReturnRealResultWhenLlmSucceeds() {
+        Map<String, Object> status = get("/api/ai/status");
+        assertThat(status.get("executionMode")).isEqualTo("REAL_MODEL");
+        assertThat(status.get("willCallRemoteModel")).isEqualTo(true);
+        assertThat(status.get("provider")).isEqualTo("test-provider");
+        assertThat(status.get("model")).isEqualTo("test-model");
+
         long reportId = insertRiskReport(projectId, "GIT_DIFF_AUDIT", "HIGH",
                 "Git diff summary", "[\"变更了配置\"]", "[\"运行测试\"]",
                 "{\"addedFiles\":[\"src/Main.java\"]}");
@@ -323,6 +329,11 @@ class AiLlmDegradationIntegrationTest {
 
     private Map<String, Object> post(String path, Map<String, Object> body) {
         ResponseEntity<Map> response = restTemplate.postForEntity(url(path), body, Map.class);
+        return data(response);
+    }
+
+    private Map<String, Object> get(String path) {
+        ResponseEntity<Map> response = restTemplate.getForEntity(url(path), Map.class);
         return data(response);
     }
 

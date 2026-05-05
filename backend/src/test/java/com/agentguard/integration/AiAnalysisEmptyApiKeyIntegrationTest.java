@@ -48,6 +48,12 @@ class AiAnalysisEmptyApiKeyIntegrationTest {
 
     @Test
     void shouldFallbackToMockWhenApiKeyIsEmpty() throws IOException {
+        Map<String, Object> status = get("/api/ai/status");
+        assertThat(status.get("executionMode")).isEqualTo("MOCK_EMPTY_KEY");
+        assertThat(status.get("willCallRemoteModel")).isEqualTo(false);
+        assertThat(status.get("hasApiKey")).isEqualTo(false);
+        assertThat((String) status.get("statusText")).contains("未配置 API Key");
+
         prepareProject(projectDir);
         Map<String, Object> scan = post("/api/projects/scan", Map.of(
                 "projectName", "AgentGuard AI Empty Key IT",
@@ -80,6 +86,11 @@ class AiAnalysisEmptyApiKeyIntegrationTest {
 
     private Map<String, Object> post(String path, Map<String, Object> body) {
         ResponseEntity<Map> response = restTemplate.postForEntity(url(path), body, Map.class);
+        return data(response);
+    }
+
+    private Map<String, Object> get(String path) {
+        ResponseEntity<Map> response = restTemplate.getForEntity(url(path), Map.class);
         return data(response);
     }
 

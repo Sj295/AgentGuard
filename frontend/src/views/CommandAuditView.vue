@@ -47,6 +47,7 @@
 
           <ReportPanel v-if="result.suggestions?.length" title="建议" :items="result.suggestions" type="info" style="margin-top: 12px;" />
 
+          <AiRuntimeStatus compact />
           <div class="ai-action-row">
             <el-button type="primary" plain :loading="aiLoading" @click="handleAiExplain">
               AI 解释风险
@@ -83,6 +84,7 @@ import CodeBlock from '../components/CodeBlock.vue'
 import EmptyState from '../components/EmptyState.vue'
 import ReportPanel from '../components/ReportPanel.vue'
 import AiInsightPanel from '../components/AiInsightPanel.vue'
+import AiRuntimeStatus from '../components/AiRuntimeStatus.vue'
 import { auditCommands } from '../api/command'
 import { explainRiskWithAi } from '../api/ai'
 import type { CommandAuditVO } from '../types/command'

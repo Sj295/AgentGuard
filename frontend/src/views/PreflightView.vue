@@ -106,6 +106,7 @@
             </div>
           </div>
 
+          <AiRuntimeStatus compact />
           <div class="ai-action-row">
             <el-button type="primary" plain :loading="aiLoading" @click="handleAiExplain">
               AI 解释风险
@@ -145,6 +146,7 @@ import EmptyState from '../components/EmptyState.vue'
 import FlowSteps from '../components/FlowSteps.vue'
 import ReportPanel from '../components/ReportPanel.vue'
 import AiInsightPanel from '../components/AiInsightPanel.vue'
+import AiRuntimeStatus from '../components/AiRuntimeStatus.vue'
 import { runPreflightCheck } from '../api/preflight'
 import { explainRiskWithAi } from '../api/ai'
 import type { PreflightCheckVO } from '../types/preflight'

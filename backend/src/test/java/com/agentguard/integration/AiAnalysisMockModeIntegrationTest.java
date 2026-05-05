@@ -45,6 +45,11 @@ class AiAnalysisMockModeIntegrationTest {
 
     @Test
     void shouldUseMockForAllAiEndpointsAndPersistRecords() throws IOException {
+        Map<String, Object> status = get("/api/ai/status");
+        assertThat(status.get("executionMode")).isEqualTo("MOCK_DISABLED");
+        assertThat(status.get("willCallRemoteModel")).isEqualTo(false);
+        assertThat((String) status.get("statusText")).contains("不会调用远程模型");
+
         prepareProject(projectDir);
         Map<String, Object> scan = post("/api/projects/scan", Map.of(
                 "projectName", "AgentGuard AI Mock IT",
@@ -139,6 +144,11 @@ class AiAnalysisMockModeIntegrationTest {
 
     private Map<String, Object> post(String path, Map<String, Object> body) {
         ResponseEntity<Map> response = restTemplate.postForEntity(url(path), body, Map.class);
+        return data(response);
+    }
+
+    private Map<String, Object> get(String path) {
+        ResponseEntity<Map> response = restTemplate.getForEntity(url(path), Map.class);
         return data(response);
     }
 
