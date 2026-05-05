@@ -124,6 +124,8 @@
       </div>
       <EmptyState v-else title="暂无安全事件" desc="扫描项目后将自动生成安全事件" />
     </div>
+
+    <AiAnalysisHistoryPanel :project-id="projectId" />
   </div>
 </template>
 
@@ -138,6 +140,7 @@ import RiskBadge from '../components/RiskBadge.vue'
 import EmptyState from '../components/EmptyState.vue'
 import MetricCard from '../components/MetricCard.vue'
 import FlowSteps from '../components/FlowSteps.vue'
+import AiAnalysisHistoryPanel from '../components/AiAnalysisHistoryPanel.vue'
 import { getSecurityOverview, getTimelineEvents } from '../api/timeline'
 import { getLatestAgentRules } from '../api/agentRule'
 import { getAllProjects } from '../api/project'

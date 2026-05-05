@@ -1,6 +1,7 @@
 import type { RiskLevel, PreflightCheckStatus, AgentType, TaskType } from './enums'
 
 export interface PreflightCheckVO {
+  reportId: number
   projectId: number
   agentType: AgentType
   taskType: TaskType

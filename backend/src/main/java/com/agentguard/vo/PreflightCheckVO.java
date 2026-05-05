@@ -8,6 +8,8 @@ import java.util.List;
 @Data
 public class PreflightCheckVO {
 
+    private Long reportId;
+
     private Long projectId;
 
     private String agentType;

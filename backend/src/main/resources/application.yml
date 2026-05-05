@@ -11,6 +11,23 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       initialization-fail-timeout: -1
+  ai:
+    model:
+      chat: none
+      embedding: none
+      image: none
+      moderation: none
+      audio:
+        speech: none
+        transcription: none
+    openai:
+      api-key: ${AGENTGUARD_AI_API_KEY:}
+      base-url: ${AGENTGUARD_AI_BASE_URL:https://api.deepseek.com}
+      chat:
+        completions-path: /chat/completions
+        options:
+          model: ${AGENTGUARD_AI_MODEL:deepseek-chat}
+          temperature: 0.2
 
 mybatis-plus:
   mapper-locations: classpath*:mapper/**/*.xml
@@ -21,3 +38,13 @@ mybatis-plus:
       logic-delete-field: deleted
       logic-delete-value: 1
       logic-not-delete-value: 0
+
+agentguard:
+  ai:
+    enabled: false
+    provider: spring-ai-openai-compatible
+    base-url: ${AGENTGUARD_AI_BASE_URL:https://api.deepseek.com}
+    api-key: ${AGENTGUARD_AI_API_KEY:}
+    model: ${AGENTGUARD_AI_MODEL:deepseek-chat}
+    timeout-seconds: 30
+    mock-on-empty-key: true

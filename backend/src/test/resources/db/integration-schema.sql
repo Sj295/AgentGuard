@@ -1,4 +1,5 @@
 DROP TABLE IF EXISTS risk_report;
+DROP TABLE IF EXISTS ai_analysis_record;
 DROP TABLE IF EXISTS agent_rule;
 DROP TABLE IF EXISTS scan_result;
 DROP TABLE IF EXISTS scan_task;
@@ -98,3 +99,26 @@ CREATE INDEX idx_risk_report_risk_level ON risk_report(risk_level);
 CREATE INDEX idx_risk_report_risk_score ON risk_report(risk_score);
 CREATE INDEX idx_risk_report_created_time ON risk_report(created_time);
 CREATE INDEX idx_risk_report_deleted ON risk_report(deleted);
+
+CREATE TABLE ai_analysis_record (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  project_id BIGINT NOT NULL,
+  analysis_type VARCHAR(64) NOT NULL,
+  source_report_id BIGINT,
+  provider VARCHAR(64) NOT NULL,
+  model VARCHAR(128) NOT NULL,
+  mocked BOOLEAN NOT NULL DEFAULT FALSE,
+  success BOOLEAN NOT NULL DEFAULT TRUE,
+  latency_ms BIGINT NOT NULL DEFAULT 0,
+  input_summary CLOB,
+  output_content CLOB,
+  error_message CLOB,
+  created_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted INT NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_project_id ON ai_analysis_record(project_id);
+CREATE INDEX idx_analysis_type ON ai_analysis_record(analysis_type);
+CREATE INDEX idx_source_report_id ON ai_analysis_record(source_report_id);
+CREATE INDEX idx_created_time ON ai_analysis_record(created_time);
+CREATE INDEX idx_ai_analysis_record_deleted ON ai_analysis_record(deleted);

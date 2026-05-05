@@ -42,9 +42,27 @@
     <div class="panel">
       <div class="panel-header">
         <span>报告预览</span>
-        <el-button v-if="reportContent" size="small" text @click="downloadMd">下载 .md</el-button>
+        <div class="preview-actions">
+          <el-button v-if="reportContent" size="small" text @click="downloadMd">下载 .md</el-button>
+          <el-button v-if="reportContent" type="primary" plain size="small" :loading="aiLoading" @click="handleAiSummary">
+            生成 AI 报告摘要
+          </el-button>
+        </div>
       </div>
-      <div v-if="reportContent" class="md-preview" v-html="renderedHtml"></div>
+      <template v-if="reportContent">
+        <div class="md-preview" v-html="renderedHtml"></div>
+        <AiInsightPanel
+          v-if="aiResult"
+          :mocked="aiResult.mocked"
+          :confidence-note="aiResult.confidenceNote"
+          summary-title="执行摘要"
+          :summary="aiResult.executiveSummary"
+          :sections="[
+            { title: '关键发现', items: aiResult.keyFindings },
+            { title: '优先动作', items: aiResult.priorityActions }
+          ]"
+        />
+      </template>
       <EmptyState v-else title="生成安全报告" desc="选择包含内容后点击生成预览" />
     </div>
   </div>
@@ -55,8 +73,11 @@ import { reactive, ref, computed, inject, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Document, Download, CircleCheck } from '@element-plus/icons-vue'
 import EmptyState from '../components/EmptyState.vue'
+import AiInsightPanel from '../components/AiInsightPanel.vue'
 import { generateMarkdownReport, exportMarkdownReport } from '../api/report'
+import { summarizeReportWithAi } from '../api/ai'
 import type { MarkdownReportVO } from '../types/report'
+import type { AiReportSummaryVO } from '../types/ai'
 
 const globalProjectId = inject<any>('globalProjectId', ref(null))
 const globalProjectName = inject<any>('globalProjectName', ref(''))
@@ -72,8 +93,10 @@ const form = reactive({
 
 const generating = ref(false)
 const exporting = ref(false)
+const aiLoading = ref(false)
 const reportContent = ref('')
 const exportResult = ref<MarkdownReportVO | null>(null)
+const aiResult = ref<AiReportSummaryVO | null>(null)
 
 onMounted(() => {
   if (globalProjectId.value) form.projectId = globalProjectId.value
@@ -99,6 +122,7 @@ const handleGenerate = async () => {
     const res = await generateMarkdownReport({ ...form } as any)
     if (res.data.code === 0) {
       reportContent.value = res.data.data.markdown
+      aiResult.value = null
       ElMessage.success('报告生成成功')
     } else {
       ElMessage.error(res.data.message)
@@ -138,6 +162,30 @@ const downloadMd = () => {
   URL.revokeObjectURL(url)
 }
 
+const handleAiSummary = async () => {
+  if (!form.projectId || !reportContent.value) {
+    ElMessage.warning('请先生成 Markdown 报告')
+    return
+  }
+  aiLoading.value = true
+  try {
+    const res = await summarizeReportWithAi({
+      projectId: form.projectId,
+      markdown: reportContent.value
+    })
+    if (res.data.code === 0) {
+      aiResult.value = res.data.data
+      ElMessage.success('AI 摘要已生成')
+    } else {
+      ElMessage.error(res.data.message)
+    }
+  } catch {
+    ElMessage.error('AI 摘要生成失败')
+  } finally {
+    aiLoading.value = false
+  }
+}
+
 const copyPath = async () => {
   if (!exportResult.value?.targetPath) return
   try {
@@ -151,6 +199,7 @@ watch(globalProjectId, (val) => {
     form.projectId = val
     reportContent.value = ''
     exportResult.value = null
+    aiResult.value = null
   }
 })
 </script>
@@ -207,6 +256,12 @@ watch(globalProjectId, (val) => {
   cursor: pointer;
   padding: 0;
   font-family: inherit;
+}
+
+.preview-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Markdown preview */

@@ -139,12 +139,12 @@ public class GitAuditServiceImpl implements GitAuditService {
         vo.setRiskItems(JsonUtils.parseStringList(report.getRiskItems()));
         vo.setCreatedTime(report.getCreatedTime());
 
-        GitAuditPayload payload = parsePayload(report.getSuggestions());
+        GitAuditPayload payload = parseStructuredPayload(report);
         vo.setChangedFileCount(payload.getChangedFileCount() == null ? 0 : payload.getChangedFileCount());
         vo.setAddedFiles(payload.getAddedFiles() == null ? List.of() : payload.getAddedFiles());
         vo.setModifiedFiles(payload.getModifiedFiles() == null ? List.of() : payload.getModifiedFiles());
         vo.setDeletedFiles(payload.getDeletedFiles() == null ? List.of() : payload.getDeletedFiles());
-        vo.setSuggestions(payload.getSuggestions() == null ? List.of() : payload.getSuggestions());
+        vo.setSuggestions(payload.getSuggestions() == null ? JsonUtils.parseStringList(report.getSuggestions()) : payload.getSuggestions());
         vo.setRollbackCommands(payload.getRollbackCommands() == null ? List.of() : payload.getRollbackCommands());
         return vo;
     }
@@ -158,7 +158,7 @@ public class GitAuditServiceImpl implements GitAuditService {
         vo.setRiskScore(report.getRiskScore());
         vo.setSummary(report.getSummary());
         vo.setRiskItems(JsonUtils.parseStringList(report.getRiskItems()));
-        GitAuditPayload payload = parsePayload(report.getSuggestions());
+        GitAuditPayload payload = parseStructuredPayload(report);
         vo.setAddedFiles(payload.getAddedFiles() == null ? List.of() : payload.getAddedFiles());
         vo.setModifiedFiles(payload.getModifiedFiles() == null ? List.of() : payload.getModifiedFiles());
         vo.setDeletedFiles(payload.getDeletedFiles() == null ? List.of() : payload.getDeletedFiles());
@@ -181,6 +181,27 @@ public class GitAuditServiceImpl implements GitAuditService {
         return payload;
     }
 
+    private GitAuditPayload parseStructuredPayload(RiskReport report) {
+        GitAuditPayload payload = parsePayload(report.getPayloadJson());
+        if (hasPayloadData(payload)) {
+            return payload;
+        }
+        return parsePayload(report.getSuggestions());
+    }
+
+    private boolean hasPayloadData(GitAuditPayload payload) {
+        if (payload == null) {
+            return false;
+        }
+        return payload.getChangedFileCount() != null
+                || payload.getScore() != null
+                || !safeList(payload.getAddedFiles()).isEmpty()
+                || !safeList(payload.getModifiedFiles()).isEmpty()
+                || !safeList(payload.getDeletedFiles()).isEmpty()
+                || !safeList(payload.getSuggestions()).isEmpty()
+                || !safeList(payload.getRollbackCommands()).isEmpty();
+    }
+
     private GitAuditPayload parsePayload(String json) {
         if (json == null || json.isBlank() || !json.trim().startsWith("{")) {
             return new GitAuditPayload();
@@ -195,6 +216,10 @@ public class GitAuditServiceImpl implements GitAuditService {
         payload.setSuggestions(toStringList(payloadMap.get("suggestions")));
         payload.setRollbackCommands(toStringList(payloadMap.get("rollbackCommands")));
         return payload;
+    }
+
+    private List<String> safeList(List<String> values) {
+        return values == null ? List.of() : values;
     }
 
     private String toJson(Object value) {

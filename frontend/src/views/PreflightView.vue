@@ -105,6 +105,24 @@
               <span>{{ a }}</span>
             </div>
           </div>
+
+          <div class="ai-action-row">
+            <el-button type="primary" plain :loading="aiLoading" @click="handleAiExplain">
+              AI 解释风险
+            </el-button>
+          </div>
+          <AiInsightPanel
+            v-if="aiResult"
+            :mocked="aiResult.mocked"
+            :confidence-note="aiResult.confidenceNote"
+            summary-title="风险摘要"
+            :summary="aiResult.riskSummary"
+            :sections="[
+              { title: '风险影响', items: aiResult.whyItMatters },
+              { title: '修复计划', items: aiResult.fixPlan },
+              { title: '安全下一步', items: aiResult.safeNextSteps }
+            ]"
+          />
         </div>
 
         <div v-else class="panel">
@@ -126,8 +144,11 @@ import RiskBadge from '../components/RiskBadge.vue'
 import EmptyState from '../components/EmptyState.vue'
 import FlowSteps from '../components/FlowSteps.vue'
 import ReportPanel from '../components/ReportPanel.vue'
+import AiInsightPanel from '../components/AiInsightPanel.vue'
 import { runPreflightCheck } from '../api/preflight'
+import { explainRiskWithAi } from '../api/ai'
 import type { PreflightCheckVO } from '../types/preflight'
+import type { AiRiskExplainVO } from '../types/ai'
 
 const globalProjectId = inject<any>('globalProjectId', ref(null))
 const globalProjectName = inject<any>('globalProjectName', ref(''))
@@ -147,6 +168,8 @@ const form = reactive({
 const plannedText = ref('')
 const checking = ref(false)
 const result = ref<PreflightCheckVO | null>(null)
+const aiLoading = ref(false)
+const aiResult = ref<AiRiskExplainVO | null>(null)
 
 onMounted(() => {
   if (globalProjectId.value) form.projectId = globalProjectId.value
@@ -163,6 +186,7 @@ const handleCheck = async () => {
     const res = await runPreflightCheck({ ...form, plannedCommands: cmds } as any)
     if (res.data.code === 0) {
       result.value = res.data.data
+      aiResult.value = null
       ElMessage.success('检查完成')
     } else {
       ElMessage.error(res.data.message)
@@ -178,8 +202,38 @@ watch(globalProjectId, (val) => {
   if (val && val !== form.projectId) {
     form.projectId = val
     result.value = null
+    aiResult.value = null
   }
 })
+
+const handleAiExplain = async () => {
+  if (!form.projectId) {
+    ElMessage.warning('请先完成预执行检查')
+    return
+  }
+  const reportId = result.value?.reportId
+  if (!reportId) {
+    ElMessage.warning('当前结果缺少报告 ID，请重新执行预检')
+    return
+  }
+  aiLoading.value = true
+  try {
+    const res = await explainRiskWithAi({
+      projectId: form.projectId,
+      reportId
+    })
+    if (res.data.code === 0) {
+      aiResult.value = res.data.data
+      ElMessage.success('AI 风险解释已生成')
+    } else {
+      ElMessage.error(res.data.message)
+    }
+  } catch {
+    ElMessage.error('AI 风险解释生成失败')
+  } finally {
+    aiLoading.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -296,6 +350,10 @@ watch(globalProjectId, (val) => {
   gap: 8px;
   font-size: 13px;
   color: #475569;
+}
+
+.ai-action-row {
+  margin-top: 16px;
 }
 
 @media (max-width: 900px) {

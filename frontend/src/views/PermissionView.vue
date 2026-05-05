@@ -75,6 +75,24 @@
         <ReportPanel v-if="result.riskItems?.length" title="风险项" :items="result.riskItems" type="warn" :count="result.riskItems.length" style="margin-bottom: 12px;" />
         <ReportPanel v-if="result.suggestions?.length" title="建议" :items="result.suggestions" type="info" :count="result.suggestions.length" style="margin-bottom: 12px;" />
 
+        <div class="ai-action-row">
+          <el-button type="primary" plain :loading="aiLoading" @click="handleAiExplain">
+            AI 解释风险
+          </el-button>
+        </div>
+        <AiInsightPanel
+          v-if="aiResult"
+          :mocked="aiResult.mocked"
+          :confidence-note="aiResult.confidenceNote"
+          summary-title="风险摘要"
+          :summary="aiResult.riskSummary"
+          :sections="[
+            { title: '风险影响', items: aiResult.whyItMatters },
+            { title: '修复计划', items: aiResult.fixPlan },
+            { title: '安全下一步', items: aiResult.safeNextSteps }
+          ]"
+        />
+
         <div v-if="result.recommendedConfig" class="shared-section-title">推荐配置</div>
         <div v-if="result.recommendedConfig" class="rec-config">
           <div class="rec-item"><span class="rec-label">沙箱模式</span><el-tag size="small" effect="plain">{{ result.recommendedConfig.sandboxMode }}</el-tag></div>
@@ -98,8 +116,11 @@ import { Search, Warning } from '@element-plus/icons-vue'
 import RiskBadge from '../components/RiskBadge.vue'
 import EmptyState from '../components/EmptyState.vue'
 import ReportPanel from '../components/ReportPanel.vue'
+import AiInsightPanel from '../components/AiInsightPanel.vue'
 import { assessPermission } from '../api/risk'
+import { explainRiskWithAi } from '../api/ai'
 import type { PermissionAssessResultVO } from '../types/risk'
+import type { AiRiskExplainVO } from '../types/ai'
 
 const globalProjectId = inject<any>('globalProjectId', ref(null))
 const globalProjectName = inject<any>('globalProjectName', ref(''))
@@ -116,6 +137,8 @@ const form = reactive({
 
 const assessing = ref(false)
 const result = ref<PermissionAssessResultVO | null>(null)
+const aiLoading = ref(false)
+const aiResult = ref<AiRiskExplainVO | null>(null)
 
 onMounted(() => {
   if (globalProjectId.value) form.projectId = globalProjectId.value
@@ -145,6 +168,7 @@ const handleAssess = async () => {
     const res = await assessPermission({ ...form } as any)
     if (res.data.code === 0) {
       result.value = res.data.data
+      aiResult.value = null
       ElMessage.success('评估完成')
     } else {
       ElMessage.error(res.data.message)
@@ -160,8 +184,33 @@ watch(globalProjectId, (val) => {
   if (val && val !== form.projectId) {
     form.projectId = val
     result.value = null
+    aiResult.value = null
   }
 })
+
+const handleAiExplain = async () => {
+  if (!form.projectId || !result.value?.reportId) {
+    ElMessage.warning('请先完成权限评估')
+    return
+  }
+  aiLoading.value = true
+  try {
+    const res = await explainRiskWithAi({
+      projectId: form.projectId,
+      reportId: result.value.reportId
+    })
+    if (res.data.code === 0) {
+      aiResult.value = res.data.data
+      ElMessage.success('AI 风险解释已生成')
+    } else {
+      ElMessage.error(res.data.message)
+    }
+  } catch {
+    ElMessage.error('AI 风险解释生成失败')
+  } finally {
+    aiLoading.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -251,6 +300,10 @@ watch(globalProjectId, (val) => {
 }
 
 .rec-label { color: #64748B; }
+
+.ai-action-row {
+  margin-bottom: 12px;
+}
 
 @media (max-width: 900px) {
   .perm-page { grid-template-columns: 1fr; }

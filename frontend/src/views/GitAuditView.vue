@@ -61,6 +61,24 @@
           </div>
 
           <ReportPanel v-if="result.suggestions?.length" title="建议" :items="result.suggestions" type="info" />
+
+          <div class="ai-action-row">
+            <el-button type="primary" plain :loading="aiLoading" @click="handleAiAnalyze">
+              生成 AI 影响分析
+            </el-button>
+          </div>
+          <AiInsightPanel
+            v-if="aiResult"
+            :mocked="aiResult.mocked"
+            :confidence-note="aiResult.confidenceNote"
+            summary-title="影响摘要"
+            :summary="aiResult.summary"
+            :sections="[
+              { title: '影响范围', items: aiResult.impactAreas },
+              { title: '测试建议', items: aiResult.testSuggestions },
+              { title: '回滚建议', items: aiResult.rollbackSuggestions }
+            ]"
+          />
         </div>
 
         <div v-else-if="cleanWorkspace" class="panel">
@@ -87,8 +105,11 @@ import RiskBadge from '../components/RiskBadge.vue'
 import CodeBlock from '../components/CodeBlock.vue'
 import EmptyState from '../components/EmptyState.vue'
 import ReportPanel from '../components/ReportPanel.vue'
+import AiInsightPanel from '../components/AiInsightPanel.vue'
 import { auditGitDiff } from '../api/gitAudit'
+import { analyzeGitDiffWithAi } from '../api/ai'
 import type { GitDiffAuditVO } from '../types/gitAudit'
+import type { AiGitDiffAnalysisVO } from '../types/ai'
 
 const globalProjectId = inject<any>('globalProjectId', ref(null))
 const globalProjectName = inject<any>('globalProjectName', ref(''))
@@ -96,6 +117,8 @@ const projectId = ref<number | null>(null)
 const auditing = ref(false)
 const result = ref<GitDiffAuditVO | null>(null)
 const cleanWorkspace = ref(false)
+const aiLoading = ref(false)
+const aiResult = ref<AiGitDiffAnalysisVO | null>(null)
 
 onMounted(() => {
   if (globalProjectId.value) projectId.value = globalProjectId.value
@@ -106,6 +129,7 @@ watch(globalProjectId, (val) => {
     projectId.value = val
     result.value = null
     cleanWorkspace.value = false
+    aiResult.value = null
   }
 })
 
@@ -114,6 +138,7 @@ const handleAudit = async () => {
   auditing.value = true
   cleanWorkspace.value = false
   result.value = null
+  aiResult.value = null
   try {
     const res = await auditGitDiff({ projectId: projectId.value })
     if (res.data.code === 0) {
@@ -128,6 +153,30 @@ const handleAudit = async () => {
     ElMessage.error('审计失败')
   } finally {
     auditing.value = false
+  }
+}
+
+const handleAiAnalyze = async () => {
+  if (!projectId.value || !result.value?.reportId) {
+    ElMessage.warning('请先完成 Git 审计')
+    return
+  }
+  aiLoading.value = true
+  try {
+    const res = await analyzeGitDiffWithAi({
+      projectId: projectId.value,
+      gitAuditReportId: result.value.reportId
+    })
+    if (res.data.code === 0) {
+      aiResult.value = res.data.data
+      ElMessage.success('AI 分析已生成')
+    } else {
+      ElMessage.error(res.data.message)
+    }
+  } catch {
+    ElMessage.error('AI 分析生成失败')
+  } finally {
+    aiLoading.value = false
   }
 }
 </script>
@@ -186,6 +235,10 @@ const handleAudit = async () => {
 
 .clean-title { font-size: 18px; font-weight: 600; color: #111827; margin-top: 16px; }
 .clean-desc { font-size: 13px; color: #94A3B8; margin-top: 6px; }
+
+.ai-action-row {
+  margin-top: 16px;
+}
 
 @media (max-width: 900px) {
   .git-grid { grid-template-columns: 1fr; }

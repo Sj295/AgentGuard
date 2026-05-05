@@ -46,6 +46,24 @@
           </div>
 
           <ReportPanel v-if="result.suggestions?.length" title="建议" :items="result.suggestions" type="info" style="margin-top: 12px;" />
+
+          <div class="ai-action-row">
+            <el-button type="primary" plain :loading="aiLoading" @click="handleAiExplain">
+              AI 解释风险
+            </el-button>
+          </div>
+          <AiInsightPanel
+            v-if="aiResult"
+            :mocked="aiResult.mocked"
+            :confidence-note="aiResult.confidenceNote"
+            summary-title="风险摘要"
+            :summary="aiResult.riskSummary"
+            :sections="[
+              { title: '风险影响', items: aiResult.whyItMatters },
+              { title: '修复计划', items: aiResult.fixPlan },
+              { title: '安全下一步', items: aiResult.safeNextSteps }
+            ]"
+          />
         </div>
 
         <div v-else class="panel">
@@ -64,8 +82,11 @@ import RiskBadge from '../components/RiskBadge.vue'
 import CodeBlock from '../components/CodeBlock.vue'
 import EmptyState from '../components/EmptyState.vue'
 import ReportPanel from '../components/ReportPanel.vue'
+import AiInsightPanel from '../components/AiInsightPanel.vue'
 import { auditCommands } from '../api/command'
+import { explainRiskWithAi } from '../api/ai'
 import type { CommandAuditVO } from '../types/command'
+import type { AiRiskExplainVO } from '../types/ai'
 
 const globalProjectId = inject<any>('globalProjectId', ref(null))
 const globalProjectName = inject<any>('globalProjectName', ref(''))
@@ -73,6 +94,8 @@ const form = reactive({ projectId: null as number | null })
 const commandText = ref('')
 const auditing = ref(false)
 const result = ref<CommandAuditVO | null>(null)
+const aiLoading = ref(false)
+const aiResult = ref<AiRiskExplainVO | null>(null)
 
 onMounted(() => {
   if (globalProjectId.value) form.projectId = globalProjectId.value
@@ -99,6 +122,7 @@ watch(globalProjectId, (val) => {
   if (val && val !== form.projectId) {
     form.projectId = val
     result.value = null
+    aiResult.value = null
   }
 })
 
@@ -114,6 +138,7 @@ const handleAudit = async () => {
     const res = await auditCommands({ projectId: form.projectId, commands: cmds })
     if (res.data.code === 0) {
       result.value = res.data.data
+      aiResult.value = null
       ElMessage.success('审计完成')
     } else {
       ElMessage.error(res.data.message)
@@ -122,6 +147,30 @@ const handleAudit = async () => {
     ElMessage.error('审计失败')
   } finally {
     auditing.value = false
+  }
+}
+
+const handleAiExplain = async () => {
+  if (!form.projectId || !result.value?.reportId) {
+    ElMessage.warning('请先完成命令审计')
+    return
+  }
+  aiLoading.value = true
+  try {
+    const res = await explainRiskWithAi({
+      projectId: form.projectId,
+      reportId: result.value.reportId
+    })
+    if (res.data.code === 0) {
+      aiResult.value = res.data.data
+      ElMessage.success('AI 风险解释已生成')
+    } else {
+      ElMessage.error(res.data.message)
+    }
+  } catch {
+    ElMessage.error('AI 风险解释生成失败')
+  } finally {
+    aiLoading.value = false
   }
 }
 </script>
@@ -209,6 +258,10 @@ const handleAudit = async () => {
   color: #CBD5E1;
   font-size: 16px;
   padding: 4px 0;
+}
+
+.ai-action-row {
+  margin-top: 16px;
 }
 
 @media (max-width: 900px) {

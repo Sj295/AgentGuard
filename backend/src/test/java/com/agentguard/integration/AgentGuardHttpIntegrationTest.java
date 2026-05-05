@@ -18,10 +18,12 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
-        "spring.datasource.url=jdbc:h2:mem:agentguard_it;MODE=MySQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1;INIT=RUNSCRIPT FROM 'classpath:db/integration-schema.sql'",
+        "spring.datasource.url=jdbc:h2:mem:agentguard_it;MODE=MySQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1",
         "spring.datasource.driver-class-name=org.h2.Driver",
         "spring.datasource.username=sa",
         "spring.datasource.password=",
+        "spring.sql.init.mode=always",
+        "spring.sql.init.schema-locations=classpath:db/integration-schema.sql",
         "mybatis-plus.configuration.map-underscore-to-camel-case=true",
         "mybatis-plus.global-config.db-config.logic-delete-field=deleted",
         "mybatis-plus.global-config.db-config.logic-delete-value=1",
@@ -50,7 +52,13 @@ class AgentGuardHttpIntegrationTest {
                 "projectPath", projectDir.toString()
         ));
         long projectId = longValue(scan, "projectId");
-        long taskId = longValue(scan, "taskId");
+        long responseTaskId = longValue(scan, "taskId");
+        assertThat(responseTaskId).isGreaterThan(0);
+
+        Map<String, Object> taskPage = get("/api/scan-tasks/project/" + projectId + "?current=1&size=5");
+        List<Map<String, Object>> taskRecords = records(taskPage);
+        assertThat(taskRecords).isNotEmpty();
+        long taskId = longValue(taskRecords.get(0), "id");
 
         Map<String, Object> task = get("/api/scan-tasks/" + taskId);
         assertThat(longValue(task, "projectId")).isEqualTo(projectId);

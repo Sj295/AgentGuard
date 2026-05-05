@@ -128,7 +128,7 @@ public class PreflightServiceImpl implements PreflightService {
 
         PreflightCheckResult result = preflightChecker.check(context);
         RiskReport report = saveReport(request, result);
-        return toVO(request, result, report.getCreatedTime());
+        return toVO(request, result, report.getId(), report.getCreatedTime());
     }
 
     @Override
@@ -222,8 +222,12 @@ public class PreflightServiceImpl implements PreflightService {
         return report;
     }
 
-    private PreflightCheckVO toVO(PreflightCheckRequest request, PreflightCheckResult result, LocalDateTime createdTime) {
+    private PreflightCheckVO toVO(PreflightCheckRequest request,
+                                  PreflightCheckResult result,
+                                  Long reportId,
+                                  LocalDateTime createdTime) {
         PreflightCheckVO vo = new PreflightCheckVO();
+        vo.setReportId(reportId);
         vo.setProjectId(request.getProjectId());
         vo.setAgentType(request.getAgentType());
         vo.setTaskType(request.getTaskType());
@@ -240,6 +244,7 @@ public class PreflightServiceImpl implements PreflightService {
 
     private PreflightCheckVO parseReport(RiskReport report) {
         PreflightCheckVO vo = new PreflightCheckVO();
+        vo.setReportId(report.getId());
         vo.setProjectId(report.getProjectId());
         vo.setOverallRiskLevel(report.getRiskLevel());
         vo.setCreatedTime(report.getCreatedTime());
