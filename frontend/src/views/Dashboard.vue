@@ -25,6 +25,8 @@
       </div>
     </div>
 
+    <AiRuntimeStatus class="ai-dashboard-status" />
+
     <!-- Metrics -->
     <div class="metrics-grid">
       <MetricCard :icon="Folder" :value="String(overview?.totalEvents || 0)" label="安全事件总数" color="indigo" />
@@ -125,10 +127,7 @@
       <EmptyState v-else title="暂无安全事件" desc="扫描项目后将自动生成安全事件" />
     </div>
 
-    <div class="ai-dashboard-block">
-      <AiRuntimeStatus />
-      <AiAnalysisHistoryPanel :project-id="projectId" />
-    </div>
+    <AiAnalysisHistoryPanel :project-id="projectId" />
   </div>
 </template>
 
@@ -496,10 +495,8 @@ onMounted(async () => {
   color: #94A3B8;
 }
 
-.ai-dashboard-block {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.ai-dashboard-status {
+  margin-bottom: 20px;
 }
 
 @media (max-width: 1200px) {
