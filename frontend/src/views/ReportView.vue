@@ -55,6 +55,7 @@
         <AiInsightPanel
           v-if="aiResult"
           :mocked="aiResult.mocked"
+          :cached="aiResult.cached"
           :confidence-note="aiResult.confidenceNote"
           summary-title="执行摘要"
           :summary="aiResult.executiveSummary"

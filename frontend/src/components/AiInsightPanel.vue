@@ -5,9 +5,9 @@
         <el-icon color="#4F46E5"><MagicStick /></el-icon>
         <span class="ai-title">{{ title }}</span>
       </div>
-      <el-tag :type="mocked ? 'warning' : 'success'" effect="plain" size="small">
-        {{ mocked ? 'Mock 输出' : '真实模型输出' }}
-      </el-tag>
+      <el-tag v-if="cached" type="info" effect="plain" size="small">缓存命中</el-tag>
+      <el-tag v-else-if="mocked" type="warning" effect="plain" size="small">Mock 输出</el-tag>
+      <el-tag v-else type="success" effect="plain" size="small">真实模型输出</el-tag>
     </div>
 
     <div v-if="summary" class="ai-summary">
@@ -37,6 +37,7 @@ import type { AiInsightSection } from '../types/ai'
 interface Props {
   title?: string
   mocked: boolean
+  cached?: boolean
   confidenceNote: string
   summary?: string
   summaryTitle?: string
@@ -45,6 +46,7 @@ interface Props {
 
 withDefaults(defineProps<Props>(), {
   title: 'AI 增强建议',
+  cached: false,
   summary: '',
   summaryTitle: '摘要',
   sections: () => []

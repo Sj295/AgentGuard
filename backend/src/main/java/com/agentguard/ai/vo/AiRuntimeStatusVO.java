@@ -24,4 +24,12 @@ public class AiRuntimeStatusVO {
     private String statusText;
 
     private String confidenceNote;
+
+    private Boolean redisEnabled;
+
+    private Boolean redisAvailable;
+
+    private Boolean cacheEnabled;
+
+    private Boolean rateLimitEnabled;
 }

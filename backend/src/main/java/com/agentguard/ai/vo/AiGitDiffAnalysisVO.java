@@ -21,5 +21,7 @@ public class AiGitDiffAnalysisVO {
 
     private String confidenceNote;
 
+    private Boolean cached;
+
     private boolean mocked;
 }

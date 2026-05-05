@@ -28,6 +28,29 @@ http://localhost:8080
 - Every AI invocation is persisted to `ai_analysis_record` for audit/troubleshooting.
 - API key must be provided via environment variable `AGENTGUARD_AI_API_KEY`; never hardcode keys.
 
+### Redis Caching & Rate Limiting (Optional)
+
+Redis is an optional dependency for AI result caching and per-project rate limiting. All features are disabled by default.
+
+| Env Var | Default | Description |
+|---|---|---|
+| `AGENTGUARD_REDIS_ENABLED` | `false` | Enable Redis integration |
+| `AGENTGUARD_REDIS_HOST` | `localhost` | Redis host |
+| `AGENTGUARD_REDIS_PORT` | `6379` | Redis port |
+| `AGENTGUARD_REDIS_USERNAME` | (empty) | Optional Redis ACL username, for example `root` |
+| `AGENTGUARD_REDIS_PASSWORD` | (empty) | Redis password |
+| `AGENTGUARD_AI_CACHE_ENABLED` | `false` | Enable AI result caching |
+| `AGENTGUARD_AI_CACHE_TTL_SECONDS` | `3600` | Cache TTL in seconds |
+| `AGENTGUARD_AI_RATE_LIMIT_ENABLED` | `false` | Enable per-project rate limiting |
+| `AGENTGUARD_AI_RATE_LIMIT_PER_MINUTE` | `10` | Max AI calls per project per minute |
+| `AGENTGUARD_AI_RATE_LIMIT_PER_DAY` | `200` | Max AI calls per project per day |
+
+Cache keys use SHA-256 content hashing. When a cache hit occurs, the response includes `cached=true`; the LLM is not called and the request does not consume the rate-limit counter.
+
+Rate limiting is per-project. When exceeded, the API returns HTTP 429 with error code `429001` (`AI_RATE_LIMITED`).
+
+Degradation: if Redis is unreachable at runtime, all Redis operations fail silently — no cache, no rate limit, AI endpoints work normally. `/api/ai/status` includes `redisAvailable`; `cacheEnabled` and `rateLimitEnabled` are reported as `true` only when Redis is both enabled and reachable.
+
 Real model quick setup (PowerShell):
 
 ```powershell
@@ -73,6 +96,7 @@ All endpoints return:
 | 1011 | GIT_REPOSITORY_NOT_FOUND | Not a Git repository |
 | 1012 | GIT_COMMAND_FAILED | Git command execution failed |
 | 1013 | JSON_PARSE_ERROR | JSON parsing error |
+| 429001 | AI_RATE_LIMITED | AI rate limit exceeded (per-minute or per-day) |
 | 5000 | SYSTEM_ERROR | Internal server error |
 
 ---
@@ -447,9 +471,12 @@ Response data:
   "testSuggestions": ["建议运行 mvn test"],
   "rollbackSuggestions": ["如发现异常，优先使用 git restore 恢复相关文件"],
   "confidenceNote": "AI 增强建议，仅供参考，最终风险等级以规则引擎结果为准。",
+  "cached": false,
   "mocked": true
 }
 ```
+
+When Redis caching is enabled, a second call with the same `gitAuditReportId` returns `cached=true` and skips the LLM call. Cache TTL is configurable via `agentguard.ai.cache.ttl-seconds`.
 
 ---
 
@@ -475,6 +502,7 @@ Response data:
   "fixPlan": ["将 approvalPolicy 调整为 ON_REQUEST"],
   "safeNextSteps": ["先检查 Git 工作区"],
   "confidenceNote": "AI 增强建议，仅供参考，最终风险等级以规则引擎结果为准。",
+  "cached": false,
   "mocked": true
 }
 ```
@@ -501,6 +529,7 @@ Response data:
   "keyFindings": ["项目已完成扫描并生成 Agent 规则"],
   "priorityActions": ["优先处理 CRITICAL / HIGH 风险事件"],
   "confidenceNote": "AI 增强建议，仅供参考，最终风险等级以规则引擎结果为准。",
+  "cached": false,
   "mocked": true
 }
 ```
@@ -594,3 +623,37 @@ Response data:
   }
 ]
 ```
+
+---
+
+### 19. AI Runtime Status
+
+**GET /api/ai/status**
+
+Returns the current AI execution mode and configuration state.
+
+Response data:
+```json
+{
+  "enabled": true,
+  "hasApiKey": true,
+  "mockOnEmptyKey": true,
+  "willCallRemoteModel": true,
+  "executionMode": "REAL_MODEL",
+  "provider": "spring-ai-openai-compatible",
+  "model": "deepseek-chat",
+  "baseUrl": "https://api.deepseek.com",
+  "statusText": "已配置 API Key，AI 分析会调用远程模型；调用失败时会降级为 Mock。",
+  "confidenceNote": "AI 增强建议，仅供参考，最终风险等级以规则引擎结果为准。",
+  "redisEnabled": true,
+  "redisAvailable": true,
+  "cacheEnabled": true,
+  "rateLimitEnabled": true
+}
+```
+
+`executionMode` values:
+- `MOCK_DISABLED` — AI disabled, always mock
+- `MOCK_EMPTY_KEY` — AI enabled but no key, mock fallback
+- `REAL_MODEL` — AI enabled with key, calls remote model
+- `MISCONFIGURED_EMPTY_KEY` — AI enabled but no key and mock-on-empty-key is false

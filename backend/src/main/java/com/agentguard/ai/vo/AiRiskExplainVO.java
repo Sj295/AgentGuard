@@ -21,5 +21,7 @@ public class AiRiskExplainVO {
 
     private String confidenceNote;
 
+    private Boolean cached;
+
     private boolean mocked;
 }

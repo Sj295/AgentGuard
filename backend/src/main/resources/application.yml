@@ -11,6 +11,13 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       initialization-fail-timeout: -1
+  data:
+    redis:
+      host: ${AGENTGUARD_REDIS_HOST:localhost}
+      port: ${AGENTGUARD_REDIS_PORT:6379}
+      username: ${AGENTGUARD_REDIS_USERNAME:}
+      password: ${AGENTGUARD_REDIS_PASSWORD:}
+      timeout: 3000ms
   ai:
     model:
       chat: none
@@ -40,6 +47,8 @@ mybatis-plus:
       logic-not-delete-value: 0
 
 agentguard:
+  redis:
+    enabled: ${AGENTGUARD_REDIS_ENABLED:false}
   ai:
     enabled: false
     provider: spring-ai-openai-compatible
@@ -48,3 +57,10 @@ agentguard:
     model: ${AGENTGUARD_AI_MODEL:deepseek-chat}
     timeout-seconds: 30
     mock-on-empty-key: true
+    rate-limit:
+      enabled: ${AGENTGUARD_AI_RATE_LIMIT_ENABLED:false}
+      per-minute: ${AGENTGUARD_AI_RATE_LIMIT_PER_MINUTE:10}
+      per-day: ${AGENTGUARD_AI_RATE_LIMIT_PER_DAY:200}
+    cache:
+      enabled: ${AGENTGUARD_AI_CACHE_ENABLED:false}
+      ttl-seconds: ${AGENTGUARD_AI_CACHE_TTL_SECONDS:3600}

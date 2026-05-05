@@ -18,6 +18,7 @@ public enum ErrorCode {
     GIT_REPOSITORY_NOT_FOUND(1011, "Git 仓库不存在"),
     GIT_COMMAND_FAILED(1012, "Git 命令执行失败"),
     JSON_PARSE_ERROR(1013, "JSON 解析错误"),
+    AI_RATE_LIMITED(429001, "AI 分析请求频率超限，请稍后再试"),
     SYSTEM_ERROR(5000, "系统内部错误");
 
     private final int code;

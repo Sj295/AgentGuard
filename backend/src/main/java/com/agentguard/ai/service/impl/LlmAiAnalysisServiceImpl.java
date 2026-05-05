@@ -1,5 +1,7 @@
 package com.agentguard.ai.service.impl;
 
+import com.agentguard.ai.cache.AiAnalysisCacheService;
+import com.agentguard.ai.cache.AiRateLimitService;
 import com.agentguard.ai.client.LlmClient;
 import com.agentguard.ai.config.AiProperties;
 import com.agentguard.ai.dto.AiGitDiffAnalysisRequest;
@@ -28,6 +30,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -35,6 +38,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -70,6 +74,12 @@ public class LlmAiAnalysisServiceImpl implements AiAnalysisService {
     private final MockAiAnalysisServiceImpl mockAiAnalysisService;
     private final ObjectMapper objectMapper;
 
+    @Autowired(required = false)
+    private AiRateLimitService aiRateLimitService;
+
+    @Autowired(required = false)
+    private AiAnalysisCacheService aiAnalysisCacheService;
+
     public LlmAiAnalysisServiceImpl(ProjectInfoService projectInfoService,
                                     RiskReportService riskReportService,
                                     AiAnalysisRecordService aiAnalysisRecordService,
@@ -95,6 +105,32 @@ public class LlmAiAnalysisServiceImpl implements AiAnalysisService {
     @Override
     public AiGitDiffAnalysisVO analyzeGitDiff(AiGitDiffAnalysisRequest request) {
         long start = System.currentTimeMillis();
+        if (aiAnalysisCacheService != null) {
+            Optional<AiGitDiffAnalysisVO> cached = aiAnalysisCacheService.getGitDiffAnalysis(request.getGitAuditReportId());
+            if (cached.isPresent()) {
+                AiGitDiffAnalysisVO vo = cached.get();
+                vo.setProjectId(request.getProjectId());
+                vo.setGitAuditReportId(request.getGitAuditReportId());
+                vo.setConfidenceNote(CONFIDENCE_NOTE);
+                persistRecord(
+                        AiAnalysisType.GIT_DIFF_ANALYSIS,
+                        request.getProjectId(),
+                        request.getGitAuditReportId(),
+                        "cache",
+                        "cache",
+                        vo.isMocked(),
+                        true,
+                        System.currentTimeMillis() - start,
+                        "cache hit for gitAuditReportId=" + request.getGitAuditReportId(),
+                        JsonUtils.toJson(vo),
+                        null
+                );
+                return vo;
+            }
+        }
+        if (aiRateLimitService != null) {
+            aiRateLimitService.checkAndIncrement(request.getProjectId());
+        }
         ProjectInfo projectInfo = loadProject(request.getProjectId());
         RiskReport report = loadReport(request.getGitAuditReportId());
         validateReportBelongsToProject(report, request.getProjectId());
@@ -128,6 +164,10 @@ public class LlmAiAnalysisServiceImpl implements AiAnalysisService {
             vo.setGitAuditReportId(request.getGitAuditReportId());
             vo.setConfidenceNote(CONFIDENCE_NOTE);
             vo.setMocked(false);
+            vo.setCached(false);
+            if (aiAnalysisCacheService != null) {
+                aiAnalysisCacheService.putGitDiffAnalysis(request.getGitAuditReportId(), vo);
+            }
             persistRecord(
                     AiAnalysisType.GIT_DIFF_ANALYSIS,
                     request.getProjectId(),
@@ -165,6 +205,32 @@ public class LlmAiAnalysisServiceImpl implements AiAnalysisService {
     @Override
     public AiRiskExplainVO explainRisk(AiRiskExplainRequest request) {
         long start = System.currentTimeMillis();
+        if (aiAnalysisCacheService != null) {
+            Optional<AiRiskExplainVO> cached = aiAnalysisCacheService.getRiskExplain(request.getReportId());
+            if (cached.isPresent()) {
+                AiRiskExplainVO vo = cached.get();
+                vo.setProjectId(request.getProjectId());
+                vo.setReportId(request.getReportId());
+                vo.setConfidenceNote(CONFIDENCE_NOTE);
+                persistRecord(
+                        AiAnalysisType.RISK_EXPLAIN,
+                        request.getProjectId(),
+                        request.getReportId(),
+                        "cache",
+                        "cache",
+                        vo.isMocked(),
+                        true,
+                        System.currentTimeMillis() - start,
+                        "cache hit for reportId=" + request.getReportId(),
+                        JsonUtils.toJson(vo),
+                        null
+                );
+                return vo;
+            }
+        }
+        if (aiRateLimitService != null) {
+            aiRateLimitService.checkAndIncrement(request.getProjectId());
+        }
         loadProject(request.getProjectId());
         RiskReport report = loadReport(request.getReportId());
         validateReportBelongsToProject(report, request.getProjectId());
@@ -189,6 +255,10 @@ public class LlmAiAnalysisServiceImpl implements AiAnalysisService {
             vo.setReportId(request.getReportId());
             vo.setConfidenceNote(CONFIDENCE_NOTE);
             vo.setMocked(false);
+            vo.setCached(false);
+            if (aiAnalysisCacheService != null) {
+                aiAnalysisCacheService.putRiskExplain(request.getReportId(), vo);
+            }
             persistRecord(
                     AiAnalysisType.RISK_EXPLAIN,
                     request.getProjectId(),
@@ -226,6 +296,31 @@ public class LlmAiAnalysisServiceImpl implements AiAnalysisService {
     @Override
     public AiReportSummaryVO summarizeReport(AiReportSummaryRequest request) {
         long start = System.currentTimeMillis();
+        if (aiAnalysisCacheService != null) {
+            Optional<AiReportSummaryVO> cached = aiAnalysisCacheService.getReportSummary(request.getProjectId(), request.getMarkdown());
+            if (cached.isPresent()) {
+                AiReportSummaryVO vo = cached.get();
+                vo.setProjectId(request.getProjectId());
+                vo.setConfidenceNote(CONFIDENCE_NOTE);
+                persistRecord(
+                        AiAnalysisType.REPORT_SUMMARY,
+                        request.getProjectId(),
+                        null,
+                        "cache",
+                        "cache",
+                        vo.isMocked(),
+                        true,
+                        System.currentTimeMillis() - start,
+                        "cache hit for projectId=" + request.getProjectId(),
+                        JsonUtils.toJson(vo),
+                        null
+                );
+                return vo;
+            }
+        }
+        if (aiRateLimitService != null) {
+            aiRateLimitService.checkAndIncrement(request.getProjectId());
+        }
         loadProject(request.getProjectId());
         String truncatedMarkdown = truncateMarkdown(request.getMarkdown());
         String inputSummary = buildReportSummaryInputSummary(request.getProjectId(), request.getMarkdown(), truncatedMarkdown);
@@ -236,6 +331,10 @@ public class LlmAiAnalysisServiceImpl implements AiAnalysisService {
             vo.setProjectId(request.getProjectId());
             vo.setConfidenceNote(CONFIDENCE_NOTE);
             vo.setMocked(false);
+            vo.setCached(false);
+            if (aiAnalysisCacheService != null) {
+                aiAnalysisCacheService.putReportSummary(request.getProjectId(), request.getMarkdown(), vo);
+            }
             persistRecord(
                     AiAnalysisType.REPORT_SUMMARY,
                     request.getProjectId(),

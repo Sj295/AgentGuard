@@ -181,12 +181,12 @@ const pageDesc = computed(() => pageDescs[route.path] || '')
 
 /* Sidebar */
 .layout-aside {
-  background: #0F172A;
+  background: #081225;
   transition: width 0.25s ease;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-right: 1px solid #1E293B;
+  border-right: 1px solid #162240;
 }
 
 .logo-area {
@@ -195,7 +195,7 @@ const pageDesc = computed(() => pageDescs[route.path] || '')
   align-items: center;
   padding: 0 20px;
   gap: 12px;
-  border-bottom: 1px solid #1E293B;
+  border-bottom: 1px solid #162240;
   flex-shrink: 0;
 }
 
@@ -280,7 +280,7 @@ const pageDesc = computed(() => pageDescs[route.path] || '')
 
 .sidebar-footer {
   padding: 12px 20px;
-  border-top: 1px solid #1E293B;
+  border-top: 1px solid #162240;
 }
 
 .sidebar-version {

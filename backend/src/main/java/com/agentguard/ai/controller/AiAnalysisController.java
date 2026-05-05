@@ -1,6 +1,9 @@
 package com.agentguard.ai.controller;
 
 import com.agentguard.ai.config.AiProperties;
+import com.agentguard.config.AiCacheProperties;
+import com.agentguard.config.AiRateLimitProperties;
+import com.agentguard.config.RedisProperties;
 import com.agentguard.ai.dto.AiGitDiffAnalysisRequest;
 import com.agentguard.ai.dto.AiReportSummaryRequest;
 import com.agentguard.ai.dto.AiRiskExplainRequest;
@@ -12,6 +15,7 @@ import com.agentguard.ai.vo.AiGitDiffAnalysisVO;
 import com.agentguard.ai.vo.AiReportSummaryVO;
 import com.agentguard.ai.vo.AiRiskExplainVO;
 import com.agentguard.ai.vo.AiRuntimeStatusVO;
+import com.agentguard.cache.RedisCacheService;
 import com.agentguard.common.PageResult;
 import com.agentguard.common.Result;
 import com.agentguard.service.AiAnalysisRecordService;
@@ -34,15 +38,27 @@ public class AiAnalysisController {
     private final MockAiAnalysisServiceImpl mockAiAnalysisService;
     private final LlmAiAnalysisServiceImpl llmAiAnalysisService;
     private final AiAnalysisRecordService aiAnalysisRecordService;
+    private final RedisProperties redisProperties;
+    private final AiCacheProperties aiCacheProperties;
+    private final AiRateLimitProperties aiRateLimitProperties;
+    private final RedisCacheService redisCacheService;
 
     public AiAnalysisController(AiProperties aiProperties,
                                 MockAiAnalysisServiceImpl mockAiAnalysisService,
                                 LlmAiAnalysisServiceImpl llmAiAnalysisService,
-                                AiAnalysisRecordService aiAnalysisRecordService) {
+                                AiAnalysisRecordService aiAnalysisRecordService,
+                                RedisProperties redisProperties,
+                                AiCacheProperties aiCacheProperties,
+                                AiRateLimitProperties aiRateLimitProperties,
+                                org.springframework.beans.factory.ObjectProvider<RedisCacheService> redisCacheServiceProvider) {
         this.aiProperties = aiProperties;
         this.mockAiAnalysisService = mockAiAnalysisService;
         this.llmAiAnalysisService = llmAiAnalysisService;
         this.aiAnalysisRecordService = aiAnalysisRecordService;
+        this.redisProperties = redisProperties;
+        this.aiCacheProperties = aiCacheProperties;
+        this.aiRateLimitProperties = aiRateLimitProperties;
+        this.redisCacheService = redisCacheServiceProvider.getIfAvailable();
     }
 
     @PostMapping("/git-diff/analyze")
@@ -110,6 +126,12 @@ public class AiAnalysisController {
         status.setModel(aiProperties.getModel());
         status.setBaseUrl(aiProperties.getBaseUrl());
         status.setConfidenceNote(AiAnalysisService.CONFIDENCE_NOTE);
+        boolean redisEnabled = redisProperties.isEnabled();
+        boolean redisAvailable = redisEnabled && redisCacheService != null && redisCacheService.isAvailable();
+        status.setRedisEnabled(redisEnabled);
+        status.setRedisAvailable(redisAvailable);
+        status.setCacheEnabled(redisAvailable && aiCacheProperties.isEnabled());
+        status.setRateLimitEnabled(redisAvailable && aiRateLimitProperties.isEnabled());
 
         if (!enabled) {
             status.setExecutionMode("MOCK_DISABLED");

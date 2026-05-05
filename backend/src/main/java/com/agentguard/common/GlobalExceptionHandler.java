@@ -4,6 +4,8 @@ import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -16,9 +18,13 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(BusinessException.class)
-    public Result<Void> handleBusinessException(BusinessException exception) {
+    public ResponseEntity<Result<Void>> handleBusinessException(BusinessException exception) {
         log.warn("Business exception: code={}, message={}", exception.getErrorCode().getCode(), exception.getMessage());
-        return Result.fail(exception.getErrorCode().getCode(), exception.getMessage());
+        Result<Void> result = Result.fail(exception.getErrorCode().getCode(), exception.getMessage());
+        if (exception.getErrorCode() == ErrorCode.AI_RATE_LIMITED) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(result);
+        }
+        return ResponseEntity.ok(result);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

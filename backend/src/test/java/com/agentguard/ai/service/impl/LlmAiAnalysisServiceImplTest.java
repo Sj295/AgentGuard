@@ -1,5 +1,7 @@
 package com.agentguard.ai.service.impl;
 
+import com.agentguard.ai.cache.AiAnalysisCacheService;
+import com.agentguard.ai.cache.AiRateLimitService;
 import com.agentguard.ai.client.LlmClient;
 import com.agentguard.ai.config.AiProperties;
 import com.agentguard.ai.dto.AiGitDiffAnalysisRequest;
@@ -24,8 +26,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -33,6 +37,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class LlmAiAnalysisServiceImplTest {
@@ -159,6 +164,35 @@ class LlmAiAnalysisServiceImplTest {
         AiGitDiffAnalysisVO vo = service.analyzeGitDiff(buildGitDiffRequest());
 
         assertThat(vo.getSummary()).isNotEmpty();
+    }
+
+    @Test
+    void analyzeGitDiff_shouldReturnCacheHitBeforeRateLimitAndLlmCall() {
+        AiAnalysisCacheService cacheService = Mockito.mock(AiAnalysisCacheService.class);
+        AiRateLimitService rateLimitService = Mockito.mock(AiRateLimitService.class);
+        AiGitDiffAnalysisVO cached = new AiGitDiffAnalysisVO();
+        cached.setSummary("cached result");
+        cached.setImpactAreas(List.of("cached area"));
+        cached.setTestSuggestions(List.of("cached test"));
+        cached.setRollbackSuggestions(List.of("cached rollback"));
+        cached.setMocked(false);
+        cached.setCached(true);
+
+        when(cacheService.getGitDiffAnalysis(REPORT_ID)).thenReturn(Optional.of(cached));
+        ReflectionTestUtils.setField(service, "aiAnalysisCacheService", cacheService);
+        ReflectionTestUtils.setField(service, "aiRateLimitService", rateLimitService);
+
+        AiGitDiffAnalysisVO vo = service.analyzeGitDiff(buildGitDiffRequest());
+
+        assertThat(vo.getCached()).isTrue();
+        assertThat(vo.getSummary()).isEqualTo("cached result");
+        assertThat(vo.getProjectId()).isEqualTo(PROJECT_ID);
+        assertThat(vo.getGitAuditReportId()).isEqualTo(REPORT_ID);
+        verify(cacheService).getGitDiffAnalysis(REPORT_ID);
+        verifyNoInteractions(rateLimitService, projectInfoService, riskReportService, llmClient);
+        verify(aiAnalysisRecordService).saveRecordSafely(recordCaptor.capture());
+        assertThat(recordCaptor.getValue().getProvider()).isEqualTo("cache");
+        assertThat(recordCaptor.getValue().getInputSummary()).contains("cache hit");
     }
 
     // ========== Risk Explain JSON Parsing ==========

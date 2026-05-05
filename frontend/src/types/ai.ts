@@ -26,6 +26,10 @@ export interface AiRuntimeStatusVO {
   baseUrl: string
   statusText: string
   confidenceNote: string
+  redisEnabled?: boolean
+  redisAvailable?: boolean
+  cacheEnabled?: boolean
+  rateLimitEnabled?: boolean
 }
 
 export interface AiGitDiffAnalysisVO {
@@ -36,6 +40,7 @@ export interface AiGitDiffAnalysisVO {
   testSuggestions: string[]
   rollbackSuggestions: string[]
   confidenceNote: string
+  cached?: boolean
   mocked: boolean
 }
 
@@ -47,6 +52,7 @@ export interface AiRiskExplainVO {
   fixPlan: string[]
   safeNextSteps: string[]
   confidenceNote: string
+  cached?: boolean
   mocked: boolean
 }
 
@@ -56,6 +62,7 @@ export interface AiReportSummaryVO {
   keyFindings: string[]
   priorityActions: string[]
   confidenceNote: string
+  cached?: boolean
   mocked: boolean
 }
 

@@ -1,5 +1,6 @@
 package com.agentguard.ai.service.impl;
 
+import com.agentguard.ai.cache.AiAnalysisCacheService;
 import com.agentguard.ai.dto.AiGitDiffAnalysisRequest;
 import com.agentguard.ai.dto.AiReportSummaryRequest;
 import com.agentguard.ai.dto.AiRiskExplainRequest;
@@ -11,8 +12,11 @@ import com.agentguard.common.JsonUtils;
 import com.agentguard.common.enums.AiAnalysisType;
 import com.agentguard.entity.AiAnalysisRecord;
 import com.agentguard.service.AiAnalysisRecordService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+
+import java.util.Optional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,6 +34,9 @@ public class MockAiAnalysisServiceImpl implements AiAnalysisService {
 
     private final AiAnalysisRecordService aiAnalysisRecordService;
 
+    @Autowired(required = false)
+    private AiAnalysisCacheService aiAnalysisCacheService;
+
     public MockAiAnalysisServiceImpl(AiAnalysisRecordService aiAnalysisRecordService) {
         this.aiAnalysisRecordService = aiAnalysisRecordService;
     }
@@ -37,7 +44,30 @@ public class MockAiAnalysisServiceImpl implements AiAnalysisService {
     @Override
     public AiGitDiffAnalysisVO analyzeGitDiff(AiGitDiffAnalysisRequest request) {
         long start = System.currentTimeMillis();
+        if (aiAnalysisCacheService != null) {
+            Optional<AiGitDiffAnalysisVO> cached = aiAnalysisCacheService.getGitDiffAnalysis(request.getGitAuditReportId());
+            if (cached.isPresent()) {
+                AiGitDiffAnalysisVO vo = cached.get();
+                vo.setProjectId(request.getProjectId());
+                vo.setGitAuditReportId(request.getGitAuditReportId());
+                vo.setConfidenceNote(CONFIDENCE_NOTE);
+                persistRecord(
+                        AiAnalysisType.GIT_DIFF_ANALYSIS,
+                        request.getProjectId(),
+                        request.getGitAuditReportId(),
+                        "cache hit for gitAuditReportId=" + request.getGitAuditReportId(),
+                        JsonUtils.toJson(vo),
+                        null,
+                        System.currentTimeMillis() - start
+                );
+                return vo;
+            }
+        }
         AiGitDiffAnalysisVO vo = buildGitDiffMock(request);
+        vo.setCached(false);
+        if (aiAnalysisCacheService != null) {
+            aiAnalysisCacheService.putGitDiffAnalysis(request.getGitAuditReportId(), vo);
+        }
         persistRecord(
                 AiAnalysisType.GIT_DIFF_ANALYSIS,
                 request.getProjectId(),
@@ -78,7 +108,30 @@ public class MockAiAnalysisServiceImpl implements AiAnalysisService {
     @Override
     public AiRiskExplainVO explainRisk(AiRiskExplainRequest request) {
         long start = System.currentTimeMillis();
+        if (aiAnalysisCacheService != null) {
+            Optional<AiRiskExplainVO> cached = aiAnalysisCacheService.getRiskExplain(request.getReportId());
+            if (cached.isPresent()) {
+                AiRiskExplainVO vo = cached.get();
+                vo.setProjectId(request.getProjectId());
+                vo.setReportId(request.getReportId());
+                vo.setConfidenceNote(CONFIDENCE_NOTE);
+                persistRecord(
+                        AiAnalysisType.RISK_EXPLAIN,
+                        request.getProjectId(),
+                        request.getReportId(),
+                        "cache hit for reportId=" + request.getReportId(),
+                        JsonUtils.toJson(vo),
+                        null,
+                        System.currentTimeMillis() - start
+                );
+                return vo;
+            }
+        }
         AiRiskExplainVO vo = buildRiskExplainMock(request);
+        vo.setCached(false);
+        if (aiAnalysisCacheService != null) {
+            aiAnalysisCacheService.putRiskExplain(request.getReportId(), vo);
+        }
         persistRecord(
                 AiAnalysisType.RISK_EXPLAIN,
                 request.getProjectId(),
@@ -119,7 +172,29 @@ public class MockAiAnalysisServiceImpl implements AiAnalysisService {
     @Override
     public AiReportSummaryVO summarizeReport(AiReportSummaryRequest request) {
         long start = System.currentTimeMillis();
+        if (aiAnalysisCacheService != null) {
+            Optional<AiReportSummaryVO> cached = aiAnalysisCacheService.getReportSummary(request.getProjectId(), request.getMarkdown());
+            if (cached.isPresent()) {
+                AiReportSummaryVO vo = cached.get();
+                vo.setProjectId(request.getProjectId());
+                vo.setConfidenceNote(CONFIDENCE_NOTE);
+                persistRecord(
+                        AiAnalysisType.REPORT_SUMMARY,
+                        request.getProjectId(),
+                        null,
+                        "cache hit for projectId=" + request.getProjectId(),
+                        JsonUtils.toJson(vo),
+                        null,
+                        System.currentTimeMillis() - start
+                );
+                return vo;
+            }
+        }
         AiReportSummaryVO vo = buildReportSummaryMock(request);
+        vo.setCached(false);
+        if (aiAnalysisCacheService != null) {
+            aiAnalysisCacheService.putReportSummary(request.getProjectId(), request.getMarkdown(), vo);
+        }
         persistRecord(
                 AiAnalysisType.REPORT_SUMMARY,
                 request.getProjectId(),

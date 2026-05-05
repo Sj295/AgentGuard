@@ -10,6 +10,9 @@
         <div v-if="status?.willCallRemoteModel && !compact" class="ai-runtime-meta">
           {{ status.provider }} · {{ status.model }}
         </div>
+        <div v-if="redisHint && !compact" class="ai-runtime-meta">
+          {{ redisHint }}
+        </div>
       </div>
     </div>
     <el-tag :type="tagType" effect="plain" size="small">{{ modeLabel }}</el-tag>
@@ -83,6 +86,15 @@ const iconColor = computed(() => {
   if (status.value?.executionMode === 'MISCONFIGURED_EMPTY_KEY') return '#EF4444'
   if (status.value?.executionMode === 'MOCK_EMPTY_KEY') return '#F59E0B'
   return '#64748B'
+})
+
+const redisHint = computed(() => {
+  if (!status.value?.redisEnabled) return ''
+  if (!status.value.redisAvailable) return 'Redis 已开启但当前不可用，缓存与限流已自动降级'
+  const features = []
+  if (status.value.cacheEnabled) features.push('缓存')
+  if (status.value.rateLimitEnabled) features.push('限流')
+  return features.length ? `Redis 已连接：${features.join('、')}生效` : 'Redis 已连接'
 })
 
 onMounted(loadStatus)

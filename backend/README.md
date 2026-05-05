@@ -23,6 +23,7 @@ AI Coding Agent Security Governance Platform for Codex, Claude Code, and Cursor.
 | Git Diff Audit | Audit uncommitted Git changes for risk |
 | Markdown Report | Generate and export security reports |
 | AI Enhanced Analysis | AI-assisted impact analysis, risk explanation, and report summary (advisory only) |
+| AI Cache & Rate Limit | Redis-based result caching (SHA-256 keys) and per-project rate limiting (optional, graceful degradation) |
 | AI Analysis Audit | Persist AI call history (provider/model/mock/latency/input summary/output/error) |
 | Security Timeline | Aggregate all events into a unified timeline |
 
@@ -31,9 +32,10 @@ AI Coding Agent Security Governance Platform for Codex, Claude Code, and Cursor.
 ```
 com.agentguard
 ├── audit/          # Git command execution and diff auditing
+├── cache/          # Redis cache, rate limit, key builder (optional)
 ├── command/        # Command risk detection engine
 ├── common/         # Result, PageResult, JsonUtils, ErrorCode, enums
-├── config/         # CORS, MyBatis-Plus pagination
+├── config/         # CORS, MyBatis-Plus pagination, Redis, AI cache/rate-limit
 ├── controller/     # REST controllers
 ├── detector/       # Tech stack, sensitive file, risk detectors
 ├── dto/            # Request DTOs
@@ -45,6 +47,7 @@ com.agentguard
 ├── risk/           # Permission risk assessor
 ├── scanner/        # Project directory scanner
 ├── ai/             # AI analysis module (mock + OpenAI-compatible)
+│   └── cache/      # AI-specific caching and rate limiting
 ├── service/        # Business services
 └── vo/             # Response View Objects
 ```
@@ -88,6 +91,45 @@ agentguard:
     timeout-seconds: 30
     mock-on-empty-key: true
 ```
+
+Redis configuration (optional, for caching and rate limiting):
+
+```yaml
+spring:
+  data:
+    redis:
+      host: ${AGENTGUARD_REDIS_HOST:localhost}
+      port: ${AGENTGUARD_REDIS_PORT:6379}
+      username: ${AGENTGUARD_REDIS_USERNAME:}
+      password: ${AGENTGUARD_REDIS_PASSWORD:}
+      timeout: 3000ms
+
+agentguard:
+  redis:
+    enabled: ${AGENTGUARD_REDIS_ENABLED:false}
+  ai:
+    rate-limit:
+      enabled: ${AGENTGUARD_AI_RATE_LIMIT_ENABLED:false}
+      per-minute: ${AGENTGUARD_AI_RATE_LIMIT_PER_MINUTE:10}
+      per-day: ${AGENTGUARD_AI_RATE_LIMIT_PER_DAY:200}
+    cache:
+      enabled: ${AGENTGUARD_AI_CACHE_ENABLED:false}
+      ttl-seconds: ${AGENTGUARD_AI_CACHE_TTL_SECONDS:3600}
+```
+
+Redis quick start with Docker:
+
+```bash
+docker run -d --name agentguard-redis -p 6379:6379 redis:7-alpine
+```
+
+Redis behavior:
+- `agentguard.redis.enabled=false` (default) — no Redis beans created, zero impact
+- `agentguard.redis.enabled=true` + Redis reachable — caching and rate limiting active; set `AGENTGUARD_REDIS_USERNAME=root` when using a Redis ACL user named `root`
+- `agentguard.redis.enabled=true` + Redis unreachable — graceful degradation, AI calls work normally
+- Cache hit returns `cached=true` in AI response, skips LLM call and does not consume the rate-limit counter
+- Rate limit exceeded returns HTTP 429 with `AI_RATE_LIMITED` error code
+- `GET /api/ai/status` reports `redisAvailable`, and only marks cache/rate-limit active when Redis is reachable
 
 Spring AI configuration (`application.yml`):
 

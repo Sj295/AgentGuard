@@ -17,5 +17,7 @@ public class AiReportSummaryVO {
 
     private String confidenceNote;
 
+    private Boolean cached;
+
     private boolean mocked;
 }
