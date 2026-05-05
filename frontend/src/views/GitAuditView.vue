@@ -7,7 +7,7 @@
         <p class="git-desc">审计项目未提交的 Git 变更，检测风险文件修改并生成回滚命令。</p>
         <el-form label-position="top" @submit.prevent>
           <el-form-item label="当前项目">
-            <div class="project-display">{{ globalProjectName || ('#' + projectId) }}</div>
+            <div class="project-display">{{ globalProjectName || '项目名称加载中' }}</div>
           </el-form-item>
           <el-button type="primary" :icon="Search" :loading="auditing" size="large" style="width: 100%" @click="handleAudit">
             审计变更
@@ -92,7 +92,7 @@
         </div>
 
         <div v-else class="panel">
-          <EmptyState title="审计 Git 变更" desc="输入项目 ID 并点击审计" />
+          <EmptyState title="审计 Git 变更" desc="请先扫描项目，然后点击审计" />
         </div>
       </div>
     </div>

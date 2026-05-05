@@ -5,7 +5,7 @@
       <div class="panel-header">报告配置</div>
       <el-form label-position="top" @submit.prevent>
         <el-form-item label="当前项目">
-          <div class="project-display">{{ globalProjectName || ('#' + form.projectId) }}</div>
+          <div class="project-display">{{ globalProjectName || '项目名称加载中' }}</div>
         </el-form-item>
         <el-form-item label="包含内容">
           <div class="report-options">
@@ -160,7 +160,8 @@ const downloadMd = () => {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `security-report-${form.projectId}.md`
+  const filenameProject = globalProjectName.value?.trim().replace(/[\\/:*?"<>|]/g, '-') || 'agentguard'
+  a.download = `security-report-${filenameProject}.md`
   a.click()
   URL.revokeObjectURL(url)
 }

@@ -5,7 +5,7 @@
       <div class="panel-header">权限配置</div>
       <el-form label-position="top" @submit.prevent>
         <el-form-item label="当前项目">
-          <div class="project-display">{{ globalProjectName || ('#' + form.projectId) }}</div>
+          <div class="project-display">{{ globalProjectName || '项目名称加载中' }}</div>
         </el-form-item>
         <el-form-item label="Agent 类型">
           <el-select v-model="form.agentType" style="width: 100%">
@@ -163,7 +163,7 @@ const scoreColor = computed(() => {
 
 const handleAssess = async () => {
   if (!form.projectId) {
-    ElMessage.warning('请先设置项目 ID')
+    ElMessage.warning('请先扫描项目')
     return
   }
   assessing.value = true

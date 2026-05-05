@@ -66,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, provide } from 'vue'
+import { computed, ref, onMounted, provide, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   Odometer, Search, Document, Lock, Warning,
@@ -79,9 +79,10 @@ import { getProjectById } from '../api/project'
 const route = useRoute()
 const isCollapse = ref(false)
 const savedProjectId = Number(localStorage.getItem('agentguard_projectId') || 0)
+const savedProjectName = localStorage.getItem('agentguard_projectName') || ''
 const savedHasScanned = localStorage.getItem('agentguard_hasScanned') === 'true'
 const globalProjectId = ref<number | null>(savedHasScanned && savedProjectId > 0 ? savedProjectId : null)
-const globalProjectName = ref('')
+const globalProjectName = ref(savedProjectName)
 const hasScannedProject = ref(savedHasScanned && savedProjectId > 0)
 
 const loadProjectName = async (id: number) => {
@@ -89,6 +90,7 @@ const loadProjectName = async (id: number) => {
     const res = await getProjectById(id)
     if (res.data.code === 0) {
       globalProjectName.value = res.data.data.projectName
+      localStorage.setItem('agentguard_projectName', res.data.data.projectName)
     }
   } catch { /* silent */ }
 }
@@ -102,6 +104,21 @@ onMounted(() => {
 provide('globalProjectId', globalProjectId)
 provide('globalProjectName', globalProjectName)
 provide('hasScannedProject', hasScannedProject)
+
+watch(globalProjectId, (id) => {
+  if (id) {
+    loadProjectName(id)
+  } else {
+    globalProjectName.value = ''
+    localStorage.removeItem('agentguard_projectName')
+  }
+})
+
+watch(globalProjectName, (name) => {
+  if (name) {
+    localStorage.setItem('agentguard_projectName', name)
+  }
+})
 
 const activeMenu = computed(() => route.path)
 

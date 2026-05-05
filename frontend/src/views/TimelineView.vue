@@ -36,7 +36,7 @@
             <el-option label="中风险" value="MEDIUM" />
             <el-option label="低风险" value="LOW" />
           </el-select>
-          <span class="tl-project-name">{{ globalProjectName || ('#' + filters.projectId) }}</span>
+          <span class="tl-project-name">{{ globalProjectName || '项目名称加载中' }}</span>
           <el-button type="primary" size="small" :icon="Search" @click="handleSearch">查询</el-button>
         </div>
       </div>

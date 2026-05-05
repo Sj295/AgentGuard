@@ -7,7 +7,7 @@
         <p class="cmd-desc">检测计划执行的命令是否存在安全风险，支持每行一条命令。</p>
         <el-form label-position="top" @submit.prevent>
           <el-form-item label="当前项目">
-            <div class="project-display">{{ globalProjectName || ('#' + form.projectId) }}</div>
+            <div class="project-display">{{ globalProjectName || '项目名称加载中' }}</div>
           </el-form-item>
           <el-form-item label="命令列表">
             <el-input v-model="commandText" type="textarea" :rows="8" placeholder="每行一条命令，例如：&#10;npm run build&#10;git status" class="cmd-textarea" />

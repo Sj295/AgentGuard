@@ -99,6 +99,7 @@ import type { ProjectSecurityOverviewVO, TimelineEventVO } from '../types/timeli
 import type { ProjectInfoVO } from '../api/project'
 
 const globalProjectId = inject<any>('globalProjectId', ref(null))
+const globalProjectName = inject<any>('globalProjectName', ref(''))
 const hasScannedProject = inject<any>('hasScannedProject', ref(false))
 const projectId = ref<number | null>(null)
 const projectList = ref<ProjectInfoVO[]>([])
@@ -166,8 +167,15 @@ const loadAll = async () => {
 
 const handleProjectChange = (val: number) => {
   if (val) {
+    const selectedProject = projectList.value.find((project) => project.id === val)
     globalProjectId.value = val
+    globalProjectName.value = selectedProject?.projectName || ''
+    hasScannedProject.value = true
     localStorage.setItem('agentguard_projectId', String(val))
+    if (selectedProject?.projectName) {
+      localStorage.setItem('agentguard_projectName', selectedProject.projectName)
+    }
+    localStorage.setItem('agentguard_hasScanned', 'true')
     loadAll()
   }
 }

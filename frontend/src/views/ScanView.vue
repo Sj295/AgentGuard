@@ -159,6 +159,7 @@ const handleScan = async () => {
         globalProjectName.value = result.value.projectName
         hasScannedProject.value = true
         localStorage.setItem('agentguard_projectId', String(result.value.projectId))
+        localStorage.setItem('agentguard_projectName', result.value.projectName)
         localStorage.setItem('agentguard_hasScanned', 'true')
       }
       ElMessage.success('扫描完成')
